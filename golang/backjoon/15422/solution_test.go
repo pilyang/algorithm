@@ -106,6 +106,24 @@ func Test_findMinCost(t *testing.T) {
 			},
 			want: 30,
 		},
+		{
+			name: "test6",
+			args: args{
+				graph: makeGraphFromInput(6,
+					[]string{
+						"0 1 30",
+						"1 4 10",
+						"0 2 10",
+						"2 3 10",
+						"3 4 10",
+						"4 5 50",
+					}),
+				freeTickets: makeFreeTickets([]string{"0 1", "0 5", "3 5", "4 5"}),
+				startCity:   0,
+				endCity:     5,
+			},
+			want: 0,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

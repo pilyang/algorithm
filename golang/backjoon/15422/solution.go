@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
+	"sync"
 )
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	reader := *bufio.NewReader(os.Stdin)
 	writer := *bufio.NewWriter(os.Stdout)
 	defer writer.Flush()
@@ -34,31 +37,48 @@ func main() {
 	for i := 0; i < numOfFree; i++ {
 		var from, to int
 		fmt.Fscanf(&reader, "%d %d\n", &from, &to)
-		freeTickets = append(freeTickets, [2]int{from, to})
+		freeTickets[i] = [2]int{from, to}
 	}
 
 	resutl := findMinCost(&graph, &freeTickets, startCity, endCity)
 	fmt.Fprintf(&writer, "%d\n", resutl)
 }
 
+type dataSender struct {
+	ch chan<- int64
+	wg *sync.WaitGroup
+}
+
 func findMinCost(graph *[][]*Edge, freeTickets *[][2]int, startCity, endCity int) int64 {
 	if len(*freeTickets) == 0 {
-		return dijkstra(graph, startCity, endCity)
+		freeTickets = &[][2]int{{startCity, startCity}}
 	}
-	minCost := int64(math.MaxInt64)
+
+	ch := make(chan int64, len(*freeTickets))
+	ds := &dataSender{ch, &sync.WaitGroup{}}
 	for _, ticket := range *freeTickets {
-		old := (*graph)[ticket[0]]
-		(*graph)[ticket[0]] = append(old, &Edge{ticket[1], 0})
-		if newCost := dijkstra(graph, startCity, endCity); newCost < minCost {
+		ds.wg.Add(1)
+		go dijkstraWithFreeTicket(graph, ticket, startCity, endCity, ds)
+	}
+
+	go func() {
+		ds.wg.Wait()
+		close(ch)
+	}()
+
+	minCost := int64(math.MaxInt64)
+	for newCost := range ch {
+		if newCost < minCost {
 			minCost = newCost
 		}
-		(*graph)[ticket[0]] = old
 	}
 
 	return int64(minCost)
 }
 
-func dijkstra(graph *[][]*Edge, startCity int, endCity int) int64 {
+func dijkstraWithFreeTicket(graph *[][]*Edge, ticket [2]int, startCity int, endCity int, ds *dataSender) {
+	defer ds.wg.Done()
+
 	dist := make([]int64, len(*graph))
 	for i := range dist {
 		dist[i] = math.MaxInt64
@@ -76,6 +96,12 @@ func dijkstra(graph *[][]*Edge, startCity int, endCity int) int64 {
 			continue
 		}
 
+		if current.target == ticket[0] {
+			if dist[current.target] < dist[ticket[1]] {
+				dist[ticket[1]] = dist[current.target]
+				heap.Push(pq, &Edge{ticket[1], dist[current.target]})
+			}
+		}
 		for _, edge := range (*graph)[current.target] {
 			newDist := dist[current.target] + edge.cost
 			if newDist < dist[edge.target] {
@@ -84,7 +110,8 @@ func dijkstra(graph *[][]*Edge, startCity int, endCity int) int64 {
 			}
 		}
 	}
-	return dist[endCity]
+	ds.ch <- dist[endCity]
+	runtime.Gosched()
 }
 
 // Edge struct
