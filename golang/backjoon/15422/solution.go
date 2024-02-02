@@ -9,39 +9,56 @@ import (
 	"math"
 	"os"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 )
 
+func readLine(scanner *bufio.Scanner) []string {
+	scanner.Scan()
+	// text, _ := reader.ReadString('\n')
+	return strings.Split(scanner.Text(), " ")
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	reader := *bufio.NewReader(os.Stdin)
-	writer := *bufio.NewWriter(os.Stdout)
+	// scanner := bufio.NewReader(os.Stdin)
+	scanner := bufio.NewScanner(os.Stdin)
+	writer := bufio.NewWriter(os.Stdout)
 	defer writer.Flush()
 
 	var numOfCity, numOfRoad, numOfFree, startCity, endCity int
-	fmt.Fscanf(&reader, "%d %d %d %d %d\n", &numOfCity, &numOfRoad, &numOfFree, &startCity, &endCity)
+	input := readLine(scanner)
+	numOfCity, _ = strconv.Atoi(input[0])
+	numOfRoad, _ = strconv.Atoi(input[1])
+	numOfFree, _ = strconv.Atoi(input[2])
+	startCity, _ = strconv.Atoi(input[3])
+	endCity, _ = strconv.Atoi(input[4])
 
 	graph := make([][]*Edge, numOfCity)
 	for i := range graph {
 		graph[i] = make([]*Edge, 0)
 	}
 	for i := 0; i < numOfRoad; i++ {
-		var a, b int
-		var cost int64
-		fmt.Fscanf(&reader, "%d %d %d\n", &a, &b, &cost)
+		input := readLine(scanner)
+		a, _ := strconv.Atoi(input[0])
+		b, _ := strconv.Atoi(input[1])
+		cost, _ := strconv.ParseInt(input[2], 10, 64)
+
 		graph[a] = append(graph[a], &Edge{b, cost})
 		graph[b] = append(graph[b], &Edge{a, cost})
 	}
 
 	freeTickets := make([][2]int, numOfFree)
 	for i := 0; i < numOfFree; i++ {
-		var from, to int
-		fmt.Fscanf(&reader, "%d %d\n", &from, &to)
+		input := readLine(scanner)
+		from, _ := strconv.Atoi(input[0])
+		to, _ := strconv.Atoi(input[1])
 		freeTickets[i] = [2]int{from, to}
 	}
 
 	resutl := findMinCost(&graph, &freeTickets, startCity, endCity)
-	fmt.Fprintf(&writer, "%d\n", resutl)
+	fmt.Fprintf(writer, "%d\n", resutl)
 }
 
 type dataSender struct {
