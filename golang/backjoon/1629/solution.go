@@ -1,5 +1,5 @@
 // https://www.acmicpc.net/problem/1629
-// math
+// math, pow
 
 package main
 
