@@ -1,6 +1,6 @@
 module github.com/pilyang/algorithm
 
-go 1.18.1
+go 1.18
 
 require github.com/stretchr/testify v1.8.4
 
